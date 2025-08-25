@@ -15,6 +15,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+
   DemoSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
