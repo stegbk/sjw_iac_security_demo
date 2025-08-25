@@ -1,0 +1,33 @@
+name: IaC Checks
+on:
+  pull_request:
+    paths:
+      - 'cfn/**.yml'
+      - 'cfn/**.yaml'
+      - 'rules/**'
+      - '.pre-commit-config.yaml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # cfn-lint
+      - run: pipx install cfn-lint
+      - run: cfn-lint cfn/*.y*ml
+
+      # cfn-guard (official install script)
+      - run: |
+          curl -fsSL https://raw.githubusercontent.com/aws-cloudformation/cloudformation-guard/main/install-guard.sh | bash
+          echo "$HOME/.guard/bin" >> "$GITHUB_PATH"
+      - run: cfn-guard validate -r rules/cfn-guard -d cfn
+
+      # Choose ONE: cfn-nag OR Checkov
+
+      # cfn-nag
+      - run: sudo gem install cfn-nag
+      - run: for f in cfn/*.y*ml; do cfn_nag_scan --input-path "$f"; done
+
+      # Checkov (alternative)
+      # - run: pipx install checkov
+      # - run: for f in cfn/*.y*ml; do checkov -f "$f" --quiet; done

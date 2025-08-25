@@ -1,0 +1,27 @@
+# Selectors
+let security_groups = Resources.*[ Type == "AWS::EC2::SecurityGroup" ]
+let s3_buckets      = Resources.*[ Type == "AWS::S3::Bucket" ]
+
+# 1) No public SSH (IPv4) — NOTE: each AND term is on its own line
+rule no_public_ssh_v4 {
+  %security_groups.Properties.SecurityGroupIngress[*][
+    CidrIp == "0.0.0.0/0"
+    FromPort == 22
+  ] empty
+}
+
+# 2) S3 must have SSE (AES256 or KMS)
+rule s3_encryption_required {
+  %s3_buckets.Properties.BucketEncryption exists
+  %s3_buckets.Properties.BucketEncryption.ServerSideEncryptionConfiguration[*]
+    .ServerSideEncryptionByDefault.SSEAlgorithm
+    IN ["aws:kms", "AES256"]
+}
+
+# 3) S3 public access block fully enabled
+rule s3_public_access_block_enabled {
+  %s3_buckets.Properties.PublicAccessBlockConfiguration.BlockPublicAcls == true
+  %s3_buckets.Properties.PublicAccessBlockConfiguration.BlockPublicPolicy == true
+  %s3_buckets.Properties.PublicAccessBlockConfiguration.IgnorePublicAcls == true
+  %s3_buckets.Properties.PublicAccessBlockConfiguration.RestrictPublicBuckets == true
+}
